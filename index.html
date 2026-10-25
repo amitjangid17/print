@@ -31,15 +31,17 @@ textarea,input{width:100%;padding:9px 11px;margin-top:4px;border:1px solid #e4e5
     <textarea id="names" placeholder="राम कुमार&#10;सीता देवी&#10;…"></textarea></label>
    <div class="opts">
     <label>Max font size (pt) <input id="size" type="number" min="8" max="40" value="22"></label>
-    <label class="check"><input id="guides" type="checkbox"> Show cut guides on preview (not printed)</label>
-    <button class="btn" id="print">Print</button>
+    <label class="check"><input id="guides" type="checkbox"> Show cut guides on preview (not in PDF)</label>
+    <button class="btn" id="dl">Download PDF</button>
     <span class="muted small" id="count"></span>
    </div>
-   <p class="muted small">Tip: in the print dialog choose paper A4, margins “None”, scale 100%, and turn off “Headers and footers”. Long names shrink automatically to fit.</p>
+   <p class="muted small">Downloads an A4 PDF (no browser header/date). Print it at 100% / “Actual size”. Long names shrink automatically to fit.</p>
   </div>
  </div>
  <div class="sheets" id="sheets"></div>
 </main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const $=id=>document.getElementById(id),PER=24;
 function names(){return $("names").value.split(/\r?\n/).map(l=>l.split("\t").map(c=>c.trim().replace(/^"(.*)"$/s,"$1")).filter(Boolean).join(" ")).filter(Boolean)}
@@ -58,6 +60,22 @@ function render(){
   box.querySelectorAll(".stk").forEach(e=>e.textContent&&fit(e,max));
 }
 ["names","size","guides"].forEach(id=>$(id).addEventListener("input",render));
-$("print").onclick=async()=>{await document.fonts.ready;render();window.print()};
+$("dl").onclick=async()=>{
+  const b=$("dl"),old=b.textContent;b.disabled=true;b.textContent="Preparing…";
+  try{
+    await document.fonts.ready;render();
+    const box=$("sheets"),g=box.classList.contains("guides");box.classList.remove("guides");
+    const sheets=[...box.querySelectorAll(".sheet")];if(!sheets.length){alert("Paste some names first.");return}
+    const pdf=new jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
+    for(let i=0;i<sheets.length;i++){
+      const c=await html2canvas(sheets[i],{scale:3,backgroundColor:"#ffffff"});
+      if(i)pdf.addPage();
+      pdf.addImage(c.toDataURL("image/jpeg",0.95),"JPEG",0,10,210,277,undefined,"FAST");
+    }
+    box.classList.toggle("guides",g);
+    pdf.save("name-stickers.pdf");
+  }catch(e){alert("Could not create PDF: "+e.message)}
+  finally{b.disabled=false;b.textContent=old}
+};
 document.fonts.ready.then(render);
 </script></body></html>
