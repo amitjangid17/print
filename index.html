@@ -1,0 +1,63 @@
+<!doctype html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Name Stickers</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;color:#1c1d26;font:16px/1.5 system-ui,sans-serif}.wrap{max-width:1000px;margin:0 auto;padding:0 16px}main{padding:24px 16px 48px}
+.muted{color:#6b6f80}.small{font-size:.85rem}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.btn{background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;cursor:pointer}
+.card{background:#fff;border:1px solid #e4e5ee;border-radius:12px;padding:20px}label{display:block;margin:12px 0;font-weight:500}label.check{display:flex;gap:8px;align-items:center}
+textarea,input{width:100%;padding:9px 11px;margin-top:4px;border:1px solid #e4e5ee;border-radius:8px;font:inherit}input[type=checkbox]{width:auto;margin:0}.page-hero h1{margin:0}
+@page{size:A4;margin:10mm 0}
+.tools textarea{height:200px;font-family:'Noto Sans Devanagari',system-ui,sans-serif}
+.opts{display:flex;gap:20px;flex-wrap:wrap;align-items:end;margin-top:8px}.opts label{margin:0}.opts input[type=number]{width:90px}
+.sheets{margin-top:24px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.sheet{width:210mm;height:277mm;margin:0;background:#fff;display:grid;grid-template-columns:repeat(3,70mm);grid-template-rows:repeat(8,1fr);box-shadow:0 1px 6px rgba(0,0,0,.25);break-after:page}
+.sheet:last-child{break-after:auto}
+.stk{display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;padding:2mm 4mm;color:#d00000;font-family:'Noto Sans Devanagari',sans-serif;font-weight:600;line-height:1.3;word-break:break-word}
+.guides .stk{outline:.3mm dashed #bbb;outline-offset:-.3mm}
+@media print{
+  body *{visibility:hidden}.sheets,.sheets *{visibility:visible}
+  footer,.tools,.wrap>:not(.sheets){display:none!important}
+  main{padding:0;max-width:none}.wrap{max-width:none;padding:0}
+  .sheets{margin:0;gap:0;display:block}.sheet{box-shadow:none;width:210mm;height:277mm}
+  .guides .stk{outline:none}
+}
+</style></head><body>
+<main class="wrap">
+ <div class="tools">
+  <div class="page-hero"><h1>Name Stickers</h1><p class="muted">A4 sheet · 3 columns × 8 rows · 1 cm top &amp; bottom margin · red Hindi text</p></div>
+  <div class="card">
+   <label>Paste names from Excel (one name per row)
+    <textarea id="names" placeholder="राम कुमार&#10;सीता देवी&#10;…"></textarea></label>
+   <div class="opts">
+    <label>Max font size (pt) <input id="size" type="number" min="8" max="40" value="22"></label>
+    <label class="check"><input id="guides" type="checkbox"> Show cut guides on preview (not printed)</label>
+    <button class="btn" id="print">Print</button>
+    <span class="muted small" id="count"></span>
+   </div>
+   <p class="muted small">Tip: in the print dialog choose paper A4, margins “None”, scale 100%, and turn off “Headers and footers”. Long names shrink automatically to fit.</p>
+  </div>
+ </div>
+ <div class="sheets" id="sheets"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id),PER=24;
+function names(){return $("names").value.split(/\r?\n/).map(l=>l.split("\t").map(c=>c.trim().replace(/^"(.*)"$/s,"$1")).filter(Boolean).join(" ")).filter(Boolean)}
+function fit(el,max){let s=max;el.style.fontSize=s+"pt";const w=el.clientWidth-el.offsetWidth+el.scrollWidth;
+  while(s>6&&(el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1)){s-=.5;el.style.fontSize=s+"pt"}}
+function render(){
+  const list=names(),box=$("sheets");box.innerHTML="";box.classList.toggle("guides",$("guides").checked);
+  $("count").textContent=list.length?`${list.length} stickers · ${Math.ceil(list.length/PER)} page(s)`:"";
+  const max=+$("size").value||22;
+  for(let i=0;i<list.length;i+=PER){
+    const sh=document.createElement("div");sh.className="sheet";
+    list.slice(i,i+PER).forEach(n=>{const d=document.createElement("div");d.className="stk";d.textContent=n;sh.appendChild(d)});
+    for(let k=list.slice(i,i+PER).length;k<PER;k++){const d=document.createElement("div");d.className="stk";sh.appendChild(d)}
+    box.appendChild(sh);
+  }
+  box.querySelectorAll(".stk").forEach(e=>e.textContent&&fit(e,max));
+}
+["names","size","guides"].forEach(id=>$(id).addEventListener("input",render));
+$("print").onclick=async()=>{await document.fonts.ready;render();window.print()};
+document.fonts.ready.then(render);
+</script></body></html>
